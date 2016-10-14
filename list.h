@@ -8,8 +8,9 @@ struct Node
 	Node *next;
 };
 
-void PushFront (Node **list, int data);
-void Print (const Node *list);
-void Reverse (Node **list);
-void Clear (Node **list);
+Node* PushFront (Node *list, int data);
+void Print (Node *list);
+Node* Reverse (Node *list);
+bool FindLoop (Node *list, Node **loop_start, unsigned int *loop_length);
+Node* Clear (Node *list);
 }
