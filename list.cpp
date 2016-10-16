@@ -1,14 +1,11 @@
 #include <stdio.h>
-#include <assert.h>
-#include <new>
 #include "list.h"
 
 namespace List
 {
 Node* PushFront (Node *list, int data)
 {
-	Node *node = new (std::nothrow) Node;
-	assert (node);
+	Node *node = new Node;
 	node->data = data;
 	node->next = list;
 	return node;
