@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "tree.h"
+#include "list.h"
 
 namespace Tree
 {
@@ -70,43 +71,72 @@ void PrettyPrint (TreeNode *tree)
 int FindDistance (TreeNode *fst, TreeNode *snd)
 {
 	assert (fst && snd);
-	const size_t max_stack_size = 256;
-	TreeNode* fst_stack[max_stack_size];
-	TreeNode* snd_stack[max_stack_size];
-	size_t fst_tos = 0, snd_tos = 0; // top of stack
-
-	while (fst)
+	int fst_depth = 0, snd_depth = 0;
+	TreeNode *fst_iter = fst, *snd_iter = snd;
+	while (fst_iter->parent)
 	{
-		fst_stack[fst_tos++] = fst;
-		fst = fst->parent;
+		fst_depth++;
+		fst_iter = fst_iter->parent;
 	}
-
-	while (snd)
+	while (snd_iter->parent)
 	{
-		snd_stack[snd_tos++] = snd;
-		snd = snd->parent;
+		snd_depth++;
+		snd_iter = snd_iter->parent;
 	}
-
-	// nodes haven't got common ancestor
-	if (fst_stack[fst_tos-1] != snd_stack[snd_tos-1])
+	if (fst_iter != snd_iter)
 		return -1;
-
-	// delete the same nodes from both stacks
-	while (fst_tos > 0 && snd_tos > 0 && fst_stack[fst_tos-1]==snd_stack[snd_tos-1])
+	int depth;
+	if (fst_depth > snd_depth)
 	{
-		--fst_tos;
-		--snd_tos;
+		depth = fst_depth - snd_depth;
+		fst_iter = fst;
+		for (int i = 0; i < depth; i++)
+			fst_iter = fst_iter->parent;
+		snd_iter = snd;
 	}
-	return fst_tos + snd_tos;
+	else
+	{
+		depth = snd_depth - fst_depth;
+		fst_iter = fst;
+		snd_iter = snd;
+		for (int i = 0; i < depth; i++)
+			snd_iter = snd_iter->parent;
+	}
+	while (fst_iter->parent && snd_iter->parent && fst_iter!= snd_iter)
+	{
+		fst_iter = fst_iter->parent;
+		snd_iter = snd_iter->parent;
+		depth+=2;
+	}
+	return depth;
 }
 
 void Clear (TreeNode *tree)
 {
 	assert (tree);
-	if (tree->left)
-		Clear (tree->left);
-	if (tree->right)
-		Clear(tree->right);
-	delete tree;
+	List::V2::Node *cur_free_list = nullptr, *next_free_list = nullptr;
+	cur_free_list = List::V2::PushFront(cur_free_list, static_cast<void*> (tree));
+	// while list of nodes to delete is not empty
+	while (cur_free_list)
+	{
+		// delete nodes from cur_free_list and add nodes of left and right subtrees to next_free_list
+		List::V2::Node *iter = cur_free_list;
+		do
+		{
+			TreeNode *cur_node = static_cast<TreeNode*>(iter->data);
+			if (cur_node->left)
+				next_free_list = List::V2::PushFront(next_free_list, cur_node->left);
+			if (cur_node->right)
+				next_free_list = List::V2::PushFront(next_free_list, cur_node->right);
+			delete cur_node;
+			iter = iter->next;
+		}
+		while (iter);
+		cur_free_list = List::V2::Clear(cur_free_list);
+		// swap pointers to lists
+		List::V2::Node *tmp = cur_free_list;
+		cur_free_list = next_free_list;
+		next_free_list = tmp;
+	}
 }
 }

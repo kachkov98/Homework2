@@ -25,6 +25,8 @@ int main()
 		printf ("Loop starts from element: %d; loop length: %u\n", loop_start->data, loop_length);
 	// test Print() for loops
 	List::Print (list);
+	list = List::Reverse(list);
+	List::Print(list);
 	// test Clear()
 	list = List::Clear (list);
 	List::Print (list);
