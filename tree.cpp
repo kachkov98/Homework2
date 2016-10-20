@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include "tree.h"
 #include "list.h"
@@ -17,6 +18,19 @@ TreeNode* Node (int data, TreeNode *left, TreeNode *right)
 	if (right)
 		node->right->parent = node;
 	return node;
+}
+
+TreeNode* GenerateTree (unsigned int nodes_number, int min_val, int max_val)
+{
+	assert(nodes_number && min_val <= max_val);
+	int value = min_val + rand() % (max_val - min_val + 1);
+	if (nodes_number == 1)
+		return Node (value, nullptr, nullptr);
+	unsigned int left_number = 1 + rand() % (nodes_number - 1),
+	             right_number = nodes_number - left_number;
+	return Node(value,
+				GenerateTree( left_number, min_val, max_val),
+				GenerateTree(right_number, min_val, max_val));
 }
 
 void Print (TreeNode *tree, int depth)
@@ -47,7 +61,7 @@ void PrettyPrint (TreeNode *tree)
 			else if (depth_buf[i] == '|')
 				printf (" |  ");
 		printf (" `--");
-		assert (cur_buf_size < buff_max_size);
+		assert (cur_buf_size < buf_max_size);
 		depth_buf[cur_buf_size++] = '|';
 		PrettyPrint(tree->left);
 		cur_buf_size--;
@@ -60,8 +74,8 @@ void PrettyPrint (TreeNode *tree)
 				printf ("    ");
 			else if (depth_buf[i] == '|')
 				printf (" |  ");
-			printf (" `--");
-		assert (cur_buf_size < buff_max_size);
+		printf (" `--");
+		assert (cur_buf_size < buf_max_size);
 		depth_buf[cur_buf_size++] = ' ';
 		PrettyPrint(tree->right);
 		cur_buf_size--;

@@ -62,7 +62,7 @@ namespace List
 				return false;
 			Node *slow_iter = list, *fast_iter = list;
 			unsigned int slow_iter_movements = 0;
-			while (true)
+			for (;;)
 			{
 				if (fast_iter->next && fast_iter->next->next)
 					fast_iter = fast_iter->next->next;
@@ -96,7 +96,7 @@ namespace List
 
 		Node* Clear (Node *list)
 		{
-			Node *loop_start;
+			Node *loop_start = nullptr;
 			FindLoop(list, &loop_start, nullptr);
 			Node *temp;
 			while (list != loop_start)
