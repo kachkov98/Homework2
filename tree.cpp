@@ -3,6 +3,7 @@
 #include <assert.h>
 #include "tree.h"
 #include "list.h"
+#include "tagged_pointer.h"
 
 namespace Tree
 {
@@ -26,8 +27,10 @@ TreeNode* GenerateTree (unsigned int nodes_number, int min_val, int max_val)
 	int value = min_val + rand() % (max_val - min_val + 1);
 	if (nodes_number == 1)
 		return Node (value, nullptr, nullptr);
-	unsigned int left_number = 1 + rand() % (nodes_number - 1),
-	             right_number = nodes_number - left_number;
+	if (nodes_number == 2)
+		return Node(value, GenerateTree(1, min_val, max_val), nullptr);
+	unsigned int left_number = 1 + rand() % (nodes_number - 2),
+	             right_number = nodes_number - left_number - 1;
 	return Node(value,
 				GenerateTree( left_number, min_val, max_val),
 				GenerateTree(right_number, min_val, max_val));
@@ -124,6 +127,104 @@ int FindDistance (TreeNode *fst, TreeNode *snd)
 	}
 	return depth;
 }
+
+inline TreeNode* SetupTag (TreeNode *pointer)
+{
+	return reinterpret_cast<TreeNode*>(TaggedPointer::SetupTag(reinterpret_cast<intptr_t>(pointer)));
+}
+
+inline TreeNode* ClearTag (TreeNode *pointer)
+{
+	return reinterpret_cast<TreeNode*>(TaggedPointer::ClearTag(reinterpret_cast<intptr_t>(pointer)));
+}
+
+void ClearTags(TreeNode *fst, TreeNode *snd, TreeNode *lca)
+{
+	while (fst != lca)
+	{
+		fst->parent = ClearTag(fst->parent);
+		fst = fst->parent;
+	}
+	while (snd != lca)
+	{
+		snd->parent = ClearTag(snd->parent);
+		snd = snd->parent;
+	}
+}
+
+int FindDistanceTagged(TreeNode *fst, TreeNode *snd)
+{
+	assert (fst && snd);
+	TreeNode *fst_iter = fst, *snd_iter = snd;
+	int ans = 0;
+	while (ClearTag(fst_iter->parent) || ClearTag(snd_iter->parent))
+	{
+		if (ClearTag(fst_iter->parent) && TaggedPointer::CheckTag(reinterpret_cast<intptr_t>(fst_iter->parent)))
+		{
+			ClearTags(fst, snd, fst_iter);
+			while (fst_iter != snd_iter)
+			{
+				ans--;
+				fst_iter->parent = ClearTag(fst_iter->parent);
+				fst_iter = fst_iter->parent;
+			}
+			snd_iter->parent = ClearTag(snd_iter->parent);
+			return ans;
+		}
+		fst_iter->parent = SetupTag(fst_iter->parent);
+
+		if (ClearTag(snd_iter->parent) && TaggedPointer::CheckTag(reinterpret_cast<intptr_t>(snd_iter->parent)))
+		{
+			ClearTags(fst, snd, snd_iter);
+			while (snd_iter != fst_iter)
+			{
+				ans--;
+				snd_iter->parent = ClearTag(snd_iter->parent);
+				snd_iter = snd_iter->parent;
+			}
+			fst_iter->parent = ClearTag(fst_iter->parent);
+			return ans;
+		}
+		snd_iter->parent = SetupTag(snd_iter->parent);
+
+		if (ClearTag(fst_iter->parent))
+		{
+			fst_iter = ClearTag(fst_iter->parent);
+			ans++;
+		}
+		if (ClearTag(snd_iter->parent))
+		{
+			snd_iter = ClearTag(snd_iter->parent);
+			ans++;
+		}
+	}
+
+	if (fst_iter == snd_iter)
+	{
+		ClearTags(fst, snd, fst_iter);
+		fst_iter->parent = ClearTag(fst_iter->parent);
+		return ans;
+	}
+
+	// nodes in different trees
+	// clear tags
+	fst_iter = fst;
+	while (fst_iter)
+	{
+		fst_iter->parent = ClearTag(fst_iter->parent);
+		fst_iter = fst_iter->parent;
+	}
+
+	snd_iter = snd;
+	while (snd_iter)
+	{
+		snd_iter->parent = ClearTag(snd_iter->parent);
+		snd_iter = snd_iter->parent;
+	}
+
+	return -1;
+}
+
 
 void Clear (TreeNode *tree)
 {

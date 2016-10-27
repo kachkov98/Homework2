@@ -10,10 +10,12 @@ namespace List
 			Node *next;
 		};
 
+		Node* GenerateList (unsigned int nodes_number, int min_val, int max_val);
 		Node* PushFront (Node *list, int data);
 		void Print (Node *list);
 		Node* Reverse (Node *list);
 		bool FindLoop (Node *list, Node **loop_start, unsigned int *loop_length);
+		bool FindLoopTagged (Node *list, Node **loop_start, unsigned int *loop_length);
 		Node* Clear (Node *list);
 	}
 
