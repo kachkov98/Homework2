@@ -6,7 +6,7 @@
 
 using Tree::Node;
 
-const unsigned int nodes_number = 1000000;
+const unsigned int nodes_number = 1000;
 
 Tree::TreeNode* RandomNode (Tree::TreeNode *tree)
 {

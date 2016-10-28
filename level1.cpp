@@ -4,7 +4,7 @@
 #include "list.h"
 #include "timer.h"
 
-const unsigned int nodes_number = 10000;
+const unsigned int nodes_number = 100000;
 
 int main()
 {
@@ -34,12 +34,12 @@ int main()
 	unsigned int loop_length;
 
 	Timer::Start();
-	for (unsigned int i = 0; i < 1000; i++)
+	for (unsigned int i = 0; i < 100; i++)
 		List::FindLoop(list, &loop_start, &loop_length);
 	printf (" First method loop length: %u time: %d ms\n", loop_length, Timer::Stop());
 
 	Timer::Start();
-	for (unsigned int i = 0; i < 1000; i++)
+	for (unsigned int i = 0; i < 100; i++)
 		List::FindLoopTagged(list, &loop_start, &loop_length);
 	printf ("Second method loop length: %u time: %d ms\n", loop_length, Timer::Stop());
 
