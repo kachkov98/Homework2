@@ -1,17 +1,19 @@
+#include <random>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include "tree.h"
 #include "timer.h"
 
 using Tree::Node;
 
-const unsigned int nodes_number = 1000;
+const unsigned int nodes_number = 1000000;
 
 Tree::TreeNode* RandomNode (Tree::TreeNode *tree)
 {
+	std::bernoulli_distribution distribution;
+	std::random_device generator;
 	if (tree->left && tree->right)
-		return RandomNode (rand() % 2 ? tree->right : tree->left);
+		return RandomNode (distribution(generator) ? tree->right : tree->left);
 	else if (tree->left && !tree->right)
 		return RandomNode(tree->left);
 	else if (tree->right && !tree->left)
@@ -22,8 +24,6 @@ Tree::TreeNode* RandomNode (Tree::TreeNode *tree)
 
 int main ()
 {
-	srand(time(nullptr));
-
 	Tree::TreeNode *tree = Tree::GenerateTree(nodes_number, 1, 9);
 	Tree::TreeNode *node1 = RandomNode(tree), *node2 = RandomNode(tree);
 	#if 0

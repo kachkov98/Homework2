@@ -1,3 +1,4 @@
+#include <random>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -29,7 +30,9 @@ TreeNode* GenerateTree (unsigned int nodes_number, int min_val, int max_val)
 		return Node (value, nullptr, nullptr);
 	if (nodes_number == 2)
 		return Node(value, GenerateTree(1, min_val, max_val), nullptr);
-	unsigned int left_number = 1 + rand() % (nodes_number - 2),
+	std::uniform_int_distribution<int> distribution (1, nodes_number - 2);
+	std::random_device generator;
+	unsigned int left_number = distribution(generator),
 	             right_number = nodes_number - left_number - 1;
 	return Node(value,
 				GenerateTree( left_number, min_val, max_val),
@@ -138,89 +141,35 @@ inline TreeNode* ClearTag (TreeNode *pointer)
 	return reinterpret_cast<TreeNode*>(TaggedPointer::ClearTag(reinterpret_cast<intptr_t>(pointer)));
 }
 
-inline void ClearTags(TreeNode *fst, TreeNode *snd, TreeNode *lca)
-{
-	while (fst != lca)
-		fst = fst->parent = ClearTag(fst->parent);
-	while (snd != lca)
-		snd = snd->parent = ClearTag(snd->parent);
-}
-
 int FindDistanceTagged(TreeNode *fst, TreeNode *snd)
 {
 	assert (fst && snd);
 	TreeNode *fst_iter = fst, *snd_iter = snd;
-	int ans = 0;
-	bool is_fst_in_root = false, is_snd_in_root = false;
-	while (!(is_fst_in_root && is_snd_in_root))
-	{
-		if (!is_fst_in_root && TaggedPointer::CheckTag(reinterpret_cast<intptr_t>(fst_iter->parent)))
-		{
-			ClearTags(fst, snd, fst_iter);
-			while (fst_iter != snd_iter)
-			{
-				ans--;
-				fst_iter = fst_iter->parent = ClearTag(fst_iter->parent);
-			}
-			snd_iter->parent = ClearTag(snd_iter->parent);
-			return ans;
-		}
-		if (fst_iter->parent)
-		{
-			TreeNode *next = fst_iter->parent;
-			fst_iter->parent = SetupTag(fst_iter->parent);
-			fst_iter = next;
-			ans++;
-		}
-		else
-			is_fst_in_root = true;
-
-		if (!is_snd_in_root && TaggedPointer::CheckTag(reinterpret_cast<intptr_t>(snd_iter->parent)))
-		{
-			ClearTags(fst, snd, snd_iter);
-			while (snd_iter != fst_iter)
-			{
-				ans--;
-				snd_iter = snd_iter->parent = ClearTag(snd_iter->parent);
-			}
-			fst_iter->parent = ClearTag(fst_iter->parent);
-			return ans;
-		}
-		if (snd_iter->parent)
-		{
-			TreeNode *next = snd_iter->parent;
-			snd_iter->parent = SetupTag(snd_iter->parent);
-			snd_iter = next;
-			ans++;
-		}
-		else
-			is_snd_in_root = true;
-	}
-
-	if (fst_iter == snd_iter)
-	{
-		ClearTags(fst, snd, fst_iter);
-		fst_iter->parent = ClearTag(fst_iter->parent);
-		return ans;
-	}
-
-	// nodes in different trees
-	// clear tags
-	fst_iter = fst;
 	while (fst_iter)
 	{
-		fst_iter->parent = ClearTag(fst_iter->parent);
-		fst_iter = fst_iter->parent;
+		TreeNode *parent = fst_iter->parent;
+		fst_iter->parent = SetupTag(fst_iter->parent);
+		fst_iter = parent;
 	}
-
-	snd_iter = snd;
-	while (snd_iter)
+	int ans = 0;
+	while (snd_iter && !TaggedPointer::CheckTag(reinterpret_cast<intptr_t>(snd_iter->parent)))
 	{
-		snd_iter->parent = ClearTag(snd_iter->parent);
 		snd_iter = snd_iter->parent;
+		ans++;
 	}
-
-	return -1;
+	if (!snd_iter)
+		return  -1;
+	fst_iter = fst;
+	bool is_below_lca = true;
+	while (fst_iter)
+	{
+		if (fst_iter == snd_iter)
+			is_below_lca = false;
+		if (is_below_lca)
+			ans++;
+		fst_iter = fst_iter->parent = ClearTag(fst_iter->parent);
+	};
+	return ans;
 }
 
 

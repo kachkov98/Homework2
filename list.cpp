@@ -1,3 +1,4 @@
+#include <random>
 #include <stdio.h>
 #include <stdlib.h>
 #include "list.h"
@@ -9,9 +10,11 @@ namespace List
 	{
 		Node* GenerateList(unsigned int nodes_number, int min_val, int max_val)
 		{
+			std::uniform_int_distribution<int>distribution(min_val, max_val);
+			std::random_device generator;
 			Node *list = nullptr;
 			for (unsigned int i = 0; i < nodes_number; i++)
-				list = PushFront(list, min_val + rand() % (max_val - min_val + 1));
+				list = PushFront(list, distribution(generator));
 			return list;
 		}
 

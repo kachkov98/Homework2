@@ -1,6 +1,6 @@
+#include <random>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include "list.h"
 #include "timer.h"
 
@@ -8,12 +8,13 @@ const unsigned int nodes_number = 100000;
 
 int main()
 {
-	srand(time(nullptr));
+	std::uniform_int_distribution<int> distribution (0, nodes_number-1);
+	std::random_device generator;
 	// create list
 	List::Node *list = List::GenerateList(nodes_number, 1, 9);
 	List::Node *list_end = list;
 	list = List::Reverse(list);
-	unsigned int loop_pos = rand () % nodes_number;
+	unsigned int loop_pos = distribution(generator);
 	List::Node *loop_pos_ptr = list;
 	for (unsigned int i = 0; i < loop_pos; i++)
 		loop_pos_ptr = loop_pos_ptr->next;
