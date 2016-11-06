@@ -112,7 +112,7 @@ void PrintDotFile (TreapNode *treap, const char *file_name)
 
 void Clear (TreapNode *treap)
 {
-	assert (tree);
+	assert (treap);
 	List::V2::Node *cur_free_list = nullptr, *next_free_list = nullptr;
 	cur_free_list = List::V2::PushFront(cur_free_list, static_cast<void*> (treap));
 	// while list of nodes to delete is not empty

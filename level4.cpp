@@ -1,34 +1,71 @@
 #include <random>
 #include <stdio.h>
 #include <string.h>
+#include <stddef.h>
 #include "treap.h"
 #include "dsu.h"
 #include "timer.h"
+#include "stack.h"
 
 #define PRINTRESULTS 0
 
 const unsigned int array_size = 1000000;
 const unsigned int queries_number = 10000;
 
-void DFS (Treap::TreapNode *cur_node, unsigned int *dsu, int *lca_class_ans,
-          unsigned int *min_indices, unsigned int *max_indices, int *answers)
+struct Query
 {
-	if (cur_node->left)
-	{
-		DFS (cur_node->left, dsu, lca_class_ans, min_indices, max_indices, answers);
-		lca_class_ans[DSU::Unite(dsu, cur_node->key, cur_node->left->key)] = cur_node->priority;
-	}
-	if (cur_node->right)
-	{
-		DFS (cur_node->right, dsu, lca_class_ans, min_indices, max_indices, answers);
-		lca_class_ans[DSU::Unite(dsu, cur_node->key, cur_node->right->key)] = cur_node->priority;
-	}
-	for (unsigned int i = 0; i < queries_number; i++)
-		if (max_indices[i] == cur_node->key)
-			answers[i] = lca_class_ans[DSU::Find(dsu, min_indices[i])];
+	unsigned int min_index, max_index;
+};
+
+int query_cmp (const void *a, const void *b)
+{
+	return (static_cast<const Query*>(a))->max_index - (static_cast<const Query*>(b))->max_index;
 }
 
-void TarjanRMQ (int *array, unsigned int *min_indices, unsigned int *max_indeces, int *answers)
+void DFS (Treap::TreapNode *root, unsigned int *dsu, int *lca_class_ans,
+          Query *queries, int *answers)
+{
+	TreapStack::Stack stack;
+	stack.Push(TreapStack::StackElement(root));
+	while (stack.GetTOS())
+		if (stack.elements[stack.GetTOS() - 1].color)
+		{
+			// process all queries with max_index == cur_key
+			Treap::TreapNode *cur_node = stack.elements[stack.GetTOS() - 1].node;
+			Query key = {0, cur_node->key};
+			Query *query = static_cast<Query*>(bsearch(static_cast<const void*>(&key),
+													   static_cast<const void*>(queries),
+													   queries_number, sizeof(Query), query_cmp));
+
+			if (query)
+			{
+				ptrdiff_t start_index = query - queries, i;
+				// check others suitable queries
+				for (i = start_index; i > 0 && queries[i-1].max_index == cur_node->key; i--)
+					answers[i-1] = lca_class_ans[DSU::Find(dsu, queries[i-1].min_index)];
+				for ( i = start_index; i < queries_number && queries[i].max_index == cur_node->key; i++)
+					answers[i] = lca_class_ans[DSU::Find(dsu, queries[i].min_index)];
+			}
+
+			// unite sets
+			if (cur_node->parent)
+				lca_class_ans[DSU::Unite(dsu, cur_node->parent->key, cur_node->key)] = cur_node->parent->priority;
+
+			// delete this node
+			stack.Pop();
+		}
+		else
+		{
+			unsigned int index = stack.GetTOS() - 1;
+			stack.elements[index].color = true;
+			if (stack.elements[index].node->right)
+				stack.Push(TreapStack::StackElement(stack.elements[index].node->right));
+			if (stack.elements[index].node->left)
+				stack.Push(TreapStack::StackElement(stack.elements[index].node->left));
+		}
+}
+
+void TarjanRMQ (int *array, Query *queries, int *answers)
 {
 	Treap::TreapNode *treap = Treap::GenerateFromArray(array, array_size);
 	#if PRINTRESULTS
@@ -38,7 +75,8 @@ void TarjanRMQ (int *array, unsigned int *min_indices, unsigned int *max_indeces
 	DSU::MakeDisjointSets(dsu, array_size);
 	int *lca_class_ans = new int[array_size];
 	memcpy (lca_class_ans, array, array_size * sizeof(int));
-	DFS (treap, dsu, lca_class_ans, min_indices, max_indeces, answers);
+	qsort (static_cast<void*>(queries), queries_number, sizeof (Query), query_cmp);
+	DFS (treap, dsu, lca_class_ans, queries, answers);
 	delete[] dsu;
 	delete[] lca_class_ans;
 	Treap::Clear(treap);
@@ -53,27 +91,26 @@ int main ()
 	int *array = new int[array_size];
 	for (unsigned int i = 0; i < array_size; i++)
 		array[i] = distribution(generator);
-	unsigned int *min_indexes = new unsigned int[queries_number];
-	unsigned int *max_indexes = new unsigned int[queries_number];
+	Query *queries = new Query[queries_number];
 	for (unsigned int i = 0; i < queries_number; i++)
 	{
 		unsigned int fst_index = distribution(generator) - 1, snd_index = distribution(generator) - 1;
 		if (fst_index < snd_index)
 		{
-			min_indexes[i] = fst_index;
-			max_indexes[i] = snd_index;
+			queries[i].min_index = fst_index;
+			queries[i].max_index = snd_index;
 		}
 		else
 		{
-			min_indexes[i] = snd_index;
-			max_indexes[i] = fst_index;
+			queries[i].min_index = snd_index;
+			queries[i].max_index = fst_index;
 		}
 	}
 	int *answers = new int[queries_number];
 
 	Timer::Start();
 	// process queries
-	TarjanRMQ(array, min_indexes, max_indexes, answers);
+	TarjanRMQ(array, queries, answers);
 	printf ("Processing time: %d ms\n", Timer::Stop());
 
 	#if PRINTRESULTS
@@ -85,14 +122,13 @@ int main ()
 		fprintf (f, "%d ", array[i]);
 	fprintf (f, "\nQueries and answers:\n");
 	for (unsigned int i = 0; i < queries_number; i++)
-		fprintf (f, "min(%u; %u) = %d\n", min_indexes[i], max_indexes[i], answers[i]);
+		fprintf (f, "min(%u; %u) = %d\n", queries[i].min_index, queries[i].max_index, answers[i]);
 	fclose(f);
 	#endif
 
 	// clear arrays
 	delete[] array;
-	delete[] min_indexes;
-	delete[] max_indexes;
+	delete[] queries;
 	delete[] answers;
 	return 0;
 }
